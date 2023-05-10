@@ -1,15 +1,17 @@
-const fs = require('fs');
-const path = require('path');
-const nodemailer = require('nodemailer');
+const fs = require("fs");
+const path = require("path");
+// const nodemailer = require("nodemailer");
+// const { google } = require("googleapis");
+const sgMail = require("@sendgrid/mail");
 
-const filePath = path.join(__dirname, '../views', 'verification-message.html');
-let htmlFile = fs.readFileSync(filePath, 'utf-8');
+const filePath = path.join(__dirname, "../views", "verification-message.html");
+let htmlFile = fs.readFileSync(filePath, "utf-8");
 
-const host = process.env.SMTP_HOST;
-const port = process.env.SMTP_PORT;
-const service = process.env.SMTP_SERVICE;
-const user = process.env.SMTP_MAIL;
-const pass = process.env.SMTP_PASSWORD;
+// const host = process.env.SMTP_HOST;
+// const port = process.env.SMTP_PORT;
+// const service = process.env.SMTP_SERVICE;
+// const user = process.env.SMTP_MAIL;
+// const pass = process.env.SMTP_PASSWORD;
 
 const sendCode = async ({
   firstName,
@@ -26,31 +28,33 @@ const sendCode = async ({
     .replace(/{{verificationCode}}/g, verificationCode)
     .replace(/{{verificationCodeExpiration}}/g, verificationCodeExpiration);
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    service,
-    auth: {
-      user,
-      pass,
-    },
-  });
+  return new Promise(async (resolve, reject) => {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-  const mailOptions = {
-    from: `Prompay <${user}>`,
-    to: [email],
-    subject: 'Verify your account',
-    html,
-  };
+    const msg = {
+      to: email,
+      from: {
+        email: process.env.SENDGRID_FROM_MAIL,
+        name: "Prompay",
+      }, // Use the email address or domain you verified above
+      subject: "Verification code",
+      html,
+    };
 
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailOptions, (err, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(data);
+    sgMail.send(msg).then(
+      (response) => {
+        // console.log(response, "SendGrid response");
+        resolve(true);
+      },
+      (error) => {
+        console.error(error, "SendGrid");
+
+        if (error.response) {
+          console.error(error.response.body);
+          reject(false);
+        }
       }
-    });
+    );
   });
 };
 

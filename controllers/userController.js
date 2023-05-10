@@ -1,11 +1,11 @@
-const crypto = require('crypto');
-const bcrypt = require('bcrypt');
-const User = require('../models/User');
-const Assessment = require('../models/Assessment');
-const Subject = require('../models/Subject');
-const { sendCode } = require('../nodemailer/verificationMessage');
-const generateCode = require('../utils/generateCode');
-const { generateToken } = require('../utils/generateToken');
+const crypto = require("crypto");
+const bcrypt = require("bcrypt");
+const User = require("../models/User");
+const Assessment = require("../models/Assessment");
+const Subject = require("../models/Subject");
+const { sendCode } = require("../nodemailer/verificationMessage");
+const generateCode = require("../utils/generateCode");
+const { generateToken } = require("../utils/generateToken");
 const {
   validateUserProfile,
   validateUserSignup,
@@ -13,14 +13,14 @@ const {
   adminValidateUserProfile,
   validatePassword,
   validateUserBirthDay,
-} = require('../validations/userValidation');
+} = require("../validations/userValidation");
 const {
   sendSuccessfulVerificationMessage,
-} = require('../nodemailer/successfulVerification');
-const { sendPasswordToken } = require('../nodemailer/password-reset-message');
+} = require("../nodemailer/successfulVerification");
+const { sendPasswordToken } = require("../nodemailer/password-reset-message");
 const {
   sendSuccessfulPasswordMessage,
-} = require('../nodemailer/successful-password-message');
+} = require("../nodemailer/successful-password-message");
 
 // @desc Signup user
 // @route Post /api/users/signup
@@ -34,7 +34,7 @@ const signupUser = async (req, res, next) => {
       if (error.details[0].context?.regex) {
         return res.status(400).json({
           message:
-            'Password must contain at least one uppercase, lowercase, number and special character',
+            "Password must contain at least one uppercase, lowercase, number and special character",
         });
       }
 
@@ -62,13 +62,13 @@ const signupUser = async (req, res, next) => {
     // check if a user with the same email already exists
     let existingUser = await User.findOne({ email: email });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exist' });
+      return res.status(400).json({ message: "User already exist" });
     }
 
     // check if a user with the same phone number already exists
     existingUser = await User.findOne({ phone: phone });
     if (existingUser) {
-      return res.status(400).json({ message: 'Phone number taken' });
+      return res.status(400).json({ message: "Phone number taken" });
     }
 
     // hash the password
@@ -94,16 +94,16 @@ const signupUser = async (req, res, next) => {
 
     await user.save();
 
-    await sendCode({
+    sendCode({
       firstName,
       lastName,
       email,
       verificationCode,
-      verificationCodeExpiration: '5 minutes',
+      verificationCodeExpiration: "5 minutes",
     });
 
     res.status(201).json({
-      message: 'Verification code sent successfully',
+      message: "Verification code sent successfully",
       email,
       verificationCodeExpiration: 300000, // 300,000ms = '5 minutes'
     });
@@ -124,7 +124,7 @@ const resendVerificationCode = async (req, res, next) => {
 
     const user = await User.findOne({ email: req.body.email });
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // generate the verification code (4 digits)
@@ -135,16 +135,16 @@ const resendVerificationCode = async (req, res, next) => {
     user.verificationCodeExpiration = verificationCodeExpiration;
     await user.save();
 
-    await sendCode({
+    sendCode({
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
       verificationCode,
-      verificationCodeExpiration: '5 minutes',
+      verificationCodeExpiration: "5 minutes",
     });
 
     res.status(201).json({
-      message: 'Verification code sent successfully',
+      message: "Verification code sent successfully",
       email: user.email,
       verificationCodeExpiration: 300000, // 300,000ms = '5 minutes'
     });
@@ -174,7 +174,7 @@ const verifyCode = async (req, res, next) => {
     if (!user) {
       return res
         .status(400)
-        .json({ message: 'Invalid code. Click resend below.' });
+        .json({ message: "Invalid code. Click resend below." });
     }
 
     user.isVerified = true;
@@ -183,12 +183,12 @@ const verifyCode = async (req, res, next) => {
 
     await user.save();
 
-    await sendSuccessfulVerificationMessage({
+    sendSuccessfulVerificationMessage({
       lastName: user.lastName,
       email: user.email,
     });
 
-    res.json({ message: 'Verification successful.' });
+    res.json({ message: "Verification successful." });
   } catch (err) {
     next(err);
   }
@@ -200,13 +200,13 @@ const verifyCode = async (req, res, next) => {
 const getUserProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select(
-      'firstName lastName email phone location role isAdmin birthDay imageUrl isVerified gender createdAt updatedAt'
+      "firstName lastName email phone location role isAdmin birthDay imageUrl isVerified gender createdAt updatedAt"
     );
 
     if (user) {
       res.json(user);
     } else {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: "User not found" });
     }
   } catch (err) {
     next(err);
@@ -258,7 +258,7 @@ const updateUserProfile = async (req, res, next) => {
         token: token,
       });
     } else {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: "User not found" });
     }
   } catch (error) {
     next(error);
@@ -271,18 +271,18 @@ const updateUserProfile = async (req, res, next) => {
 const getUserDashboard = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('-password -hasAuthority -__v -isAdmin -currentAssessment')
-      .populate('assessments');
+      .select("-password -hasAuthority -__v -isAdmin -currentAssessment")
+      .populate("assessments");
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const scoreInSubject = {};
 
     // find all subject and initialize score to zero for all subjects
     const subjects = await Subject.find({}).select(
-      '_id score title description'
+      "_id score title description"
     );
     for (const subject of subjects) {
       scoreInSubject[subject._id] = 0;
@@ -323,10 +323,10 @@ const getUserDashboard = async (req, res, next) => {
 const getUserWallet = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('-password -hasAuthority -isAdmin')
-      .populate(['transactions', 'payments']);
+      .select("-password -hasAuthority -isAdmin")
+      .populate(["transactions", "payments"]);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     res.json({
@@ -359,7 +359,7 @@ const getUsers = async (req, res, next) => {
     //   pages: Math.ceil(count / pageSize),
     // });
 
-    const users = await User.find({}).select('-password -__v');
+    const users = await User.find({}).select("-password -__v");
 
     res.json(users);
   } catch (error) {
@@ -376,9 +376,9 @@ const deleteUser = async (req, res, next) => {
 
     if (user) {
       await user.remove();
-      res.json({ message: 'User successfuly removed' });
+      res.json({ message: "User successfuly removed" });
     } else {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: "User not found" });
     }
   } catch (error) {
     next(error);
@@ -390,12 +390,12 @@ const deleteUser = async (req, res, next) => {
 // @access Private/Admin
 const getUserById = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id).select('-password -__v');
+    const user = await User.findById(req.params.id).select("-password -__v");
 
     if (user) {
       res.json(user);
     } else {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: "User not found" });
     }
   } catch (error) {
     next(error);
@@ -428,7 +428,7 @@ const updateUserById = async (req, res, next) => {
 
       res.json(updatedUser);
     } else {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: "User not found" });
     }
   } catch (err) {
     next(err);
@@ -442,9 +442,9 @@ const resetPassword = async (req, res) => {
   try {
     crypto.pseudoRandomBytes(32, async (err, buffer) => {
       if (err) {
-        return res.status(400).json({ message: 'Bad request' });
+        return res.status(400).json({ message: "Bad request" });
       }
-      const token = buffer.toString('hex');
+      const token = buffer.toString("hex");
       // console.log(token);
       const email = req.body.email;
       let user = await User.findOne({ email });
@@ -452,17 +452,17 @@ const resetPassword = async (req, res) => {
       if (!user) {
         return res
           .status(404)
-          .json({ message: 'User with the given email does not exist.' });
+          .json({ message: "User with the given email does not exist." });
       }
 
       user.resetToken = token;
       user.resetTokenExpiration = Date.now() + 300000; //current time + 5min(300000ms)
       user = await user.save();
 
-      await sendPasswordToken({ email, token });
+      sendPasswordToken({ email, token });
 
       res.json({
-        message: 'A link to change password has been sent to your email.',
+        message: "A link to change password has been sent to your email.",
       });
     });
   } catch (err) {
@@ -485,7 +485,7 @@ const verifyPasswordToken = async (req, res) => {
   if (!user) {
     return res
       .status(400)
-      .json({ message: 'Token expired. Make new request.' });
+      .json({ message: "Token expired. Make new request." });
   }
 
   res.json({
@@ -506,7 +506,7 @@ const setNewPassword = async (req, res) => {
     if (error.details[0].context?.regex) {
       return res.status(400).json({
         message:
-          'Password must contain at least one uppercase, lowercase, number and special character',
+          "Password must contain at least one uppercase, lowercase, number and special character",
       });
     }
 
@@ -522,7 +522,7 @@ const setNewPassword = async (req, res) => {
   if (!user) {
     return res
       .status(400)
-      .json({ message: 'Token expired. Make new request.' });
+      .json({ message: "Token expired. Make new request." });
   }
 
   // hash the password
@@ -534,13 +534,13 @@ const setNewPassword = async (req, res) => {
 
   await user.save();
 
-  await sendSuccessfulPasswordMessage({
+  sendSuccessfulPasswordMessage({
     email: user.email,
     lastName: user.lastName,
   });
 
   res.json({
-    message: 'Password changed successfully.',
+    message: "Password changed successfully.",
   });
 };
 

@@ -1,8 +1,8 @@
-const User = require('../models/User');
+const User = require("../models/User");
 const {
   sendProblemToSupport,
-} = require('../nodemailer/problem-report-message');
-const { validateProblemReport } = require('../validations/supportValidation');
+} = require("../nodemailer/problem-report-message");
+const { validateProblemReport } = require("../validations/supportValidation");
 
 // @desc Post user problem report
 // @route GET /api/support/report-problem
@@ -16,7 +16,7 @@ const postUserProblem = async (req, res, next) => {
 
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: 'Invalid user' });
+      return res.status(404).json({ message: "Invalid user" });
     }
 
     const messageData = {
@@ -30,9 +30,9 @@ const postUserProblem = async (req, res, next) => {
       details: req.body.details,
     };
 
-    await sendProblemToSupport(messageData);
+    sendProblemToSupport(messageData);
 
-    res.json({ message: 'Ticket sent successfully' });
+    res.json({ message: "Ticket sent successfully" });
   } catch (err) {
     next(err);
   }

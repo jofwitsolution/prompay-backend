@@ -1,18 +1,18 @@
-const Withdrawal = require('../models/Withdrawal');
-const Transaction = require('../models/Transaction');
-const User = require('../models/User');
-const Setting = require('../models/Setting');
+const Withdrawal = require("../models/Withdrawal");
+const Transaction = require("../models/Transaction");
+const User = require("../models/User");
+const Setting = require("../models/Setting");
 const {
   validateWithdrawal,
   validateWithdrawalAction,
-} = require('../validations/withdrawalValidation');
-const { conn } = require('../db');
+} = require("../validations/withdrawalValidation");
+const { conn } = require("../db");
 const {
   sendSuccessfulWithdrawalMessage,
-} = require('../nodemailer/successfulWithdrawal');
+} = require("../nodemailer/successfulWithdrawal");
 const {
   sendWithdrawalRequestMessage,
-} = require('../nodemailer/withdrawalRequest');
+} = require("../nodemailer/withdrawalRequest");
 
 // @desc Withdraw earned money
 // @route POST /api/withdrawals
@@ -30,11 +30,11 @@ const withdrawal = async (req, res, next) => {
 
     // Get assessment settings
     const settings = await Setting.findOne({
-      setting: 'withdrawal settings',
+      setting: "withdrawal settings",
     });
     if (!settings) {
       return res.status(403).json({
-        message: 'Settings error.',
+        message: "Settings error.",
       });
     }
 
@@ -56,7 +56,7 @@ const withdrawal = async (req, res, next) => {
     const user = await User.findById(userId).session(session);
     // check if user have less than the withdrawal amount
     if (user.wallet < req.body.amount) {
-      return res.status(400).json({ message: 'Not enough balance' });
+      return res.status(400).json({ message: "Not enough balance" });
     }
     // deduct the amount
     user.wallet -= req.body.amount;
@@ -65,8 +65,8 @@ const withdrawal = async (req, res, next) => {
     const transaction = new Transaction({
       user: userId,
       amount: req.body.amount,
-      type: 'withdrawal',
-      status: 'pending',
+      type: "withdrawal",
+      status: "pending",
     });
     await transaction.save({ session });
 
@@ -81,7 +81,7 @@ const withdrawal = async (req, res, next) => {
       accountNumber: req.body.accountNumber,
       accountName: req.body.accountName,
       amount: req.body.amount,
-      status: 'pending',
+      status: "pending",
       transaction: transaction._id,
     });
     await withdrawal.save({ session });
@@ -97,7 +97,7 @@ const withdrawal = async (req, res, next) => {
     });
 
     res.status(201).json({
-      message: 'Withdrawal pending',
+      message: "Withdrawal pending",
       withdrawal: withdrawal,
     });
   } catch (err) {
@@ -127,23 +127,23 @@ const processWithdrawal = async (req, res, next) => {
       session
     );
     if (!withdrawal) {
-      return res.status(404).json({ message: 'Withdrawal not found' });
+      return res.status(404).json({ message: "Withdrawal not found" });
     }
-    if (withdrawal.status === 'successful') {
-      return res.status(400).json({ message: 'Withdrawal already processed' });
+    if (withdrawal.status === "successful") {
+      return res.status(400).json({ message: "Withdrawal already processed" });
     }
     withdrawal.status = req.body.action;
     await withdrawal.save({ session });
 
     const transaction = await Transaction.findById(withdrawal.transaction)
-      .populate('user')
+      .populate("user")
       .session(session);
     transaction.status = req.body.action;
     await transaction.save({ session });
 
     await session.commitTransaction();
 
-    await sendSuccessfulWithdrawalMessage({
+    sendSuccessfulWithdrawalMessage({
       lastName: transaction.user.lastName,
       email: transaction.user.email,
       wallet: transaction.user.wallet,
@@ -153,7 +153,7 @@ const processWithdrawal = async (req, res, next) => {
     });
 
     res.status(200).json({
-      message: 'Withdrawal completed',
+      message: "Withdrawal completed",
       withdrawal: withdrawal,
     });
   } catch (err) {
@@ -189,12 +189,12 @@ const getWithdrawals = async (req, res, next) => {
 const getWithdrawalById = async (req, res, next) => {
   try {
     const withdrawal = await Withdrawal.findById(req.params.id).populate({
-      path: 'user',
+      path: "user",
       select:
-        'firstName isVerified lastName email phone _id totalScore wallet location imageUrl createdAt',
+        "firstName isVerified lastName email phone _id totalScore wallet location imageUrl createdAt",
     });
     if (!withdrawal) {
-      return res.status(404).json({ message: 'Withdrawal not found' });
+      return res.status(404).json({ message: "Withdrawal not found" });
     }
 
     res.json(withdrawal);
